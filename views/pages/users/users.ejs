@@ -1,0 +1,111 @@
+<div id="users" v-cloak>
+
+  <div class="container">
+    <div class="page-header text-center">
+      <h1>Users</h1>
+      <h2>View all accounts.</h2>
+      <div class="header-buttons">
+        <button class="btn btn-outline-primary" @click="clickAddButton()">add account</button>
+      </div>
+    </div>
+
+    <div class="users-list" v-if="users.length > 0">
+      <h5 class="text-muted">Accounts</h5>
+      <table class="table table-striped">
+        <thead>
+        <th>Name</th>
+        <th class="d-none d-md-table-cell">Email</th>
+        <th class="d-none d-md-table-cell">email status</th>
+        <th class="d-none d-md-table-cell">is blocked?</th>
+
+        <th class="actions-column"></th>
+        </thead>
+        <tbody>
+        <tr v-for="users in users">
+          <td><strong>{{users.fullName}}</strong></td>
+          <td class="d-none d-md-table-cell">{{users.emailAddress}}</td>
+          <td class="d-none d-md-table-cell">{{users.emailStatus}}</td>
+
+
+          <td class="d-none d-md-table-cell" v-if="users.isBlocked === true "><small>true</small></td>
+
+          <td class="d-none d-md-table-cell" v-else-if="users.isBlocked === false "><small>false</small></td>
+
+
+<!--          <td class="d-none d-md-table-cell">{{users.isBlocked}}</td>-->
+          <td class="actions-column">
+            <button class="btn btn-sm btn-outline-danger" @click="clickBlockThisUser(users.id)">Block this user</button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% /* "Add User" modal */ %>
+  <modal v-if="virtualPageSlug === 'new'" v-cloak key="new" @close="closeAddUserModal()">
+    <div class="modal-header">
+      <h5 class="modal-title">Invite friends</h5>
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span>&times;</span>
+      </button>
+    </div>
+    <ajax-form action="signup" :syncing.sync="syncing" :cloud-error.sync="cloudError" @submitted="submittedForm()" :handle-parsing="handleParsingForm">
+      <div class="form-group">
+        <label for="full-name">Full name</label>
+        <input class="form-control" id="full-name" autofocus type="text"  :class="[formErrors.fullName ? 'is-invalid' : '']" v-model.trim="formData.fullName" placeholder="Sturgis P. Sturgeon">
+        <div class="invalid-feedback" v-if="formErrors.fullName">Please enter your full name.</div>
+      </div>
+      <div class="form-group">
+        <label for="email-address">Email address</label>
+        <input class="form-control" id="email-address" type="email"  :class="[formErrors.emailAddress ? 'is-invalid' : '']" v-model.trim="formData.emailAddress" placeholder="sturgeon@example.com">
+        <div class="invalid-feedback" v-if="formErrors.emailAddress">Please enter a valid email address.</div>
+      </div>
+      <div class="form-group">
+        <label for="password">Choose a password</label>
+        <input class="form-control" id="password" type="password"  :class="[formErrors.password ? 'is-invalid' : '']" v-model.trim="formData.password" placeholder="••••••••">
+        <div class="invalid-feedback" v-if="formErrors.password">Please enter a password.</div>
+      </div>
+      <div class="form-group">
+        <label for="confirm-password">Confirm password</label>
+        <input class="form-control" id="confirm-password" type="password"  :class="[formErrors.confirmPassword ? 'is-invalid' : '']" v-model.trim="formData.confirmPassword" placeholder="••••••••">
+        <div class="invalid-feedback" v-if="formErrors.confirmPassword">Your password and confirmation do not match.</div>
+      </div>
+      <div class="form-group form-check">
+        <label for="terms-agreement" class="form-check-label" :class="[formErrors.agreed ? 'text-danger' : '']">
+          <input class="form-check-input" id="terms-agreement" type="checkbox" v-model="formData.agreed"> I have read &amp; agree to the <a target="_blank" href="/terms">terms of service</a>.
+        </label>
+      </div>
+      <p class="text-danger" v-if="cloudError==='emailAlreadyInUse'"><small>It looks like there's already an account with your email address. If you forgot your password, you can recover it <a href="password/forgot">here</a>.</small></p>
+      <p class="text-danger" v-else-if="cloudError"><small>An error occured while processing your request. Please check your information and try again, or <a href="/support">contact support</a> if the error persists.</small></p>
+      <div class="form-group">
+        <ajax-button type="submit" :syncing="syncing" class="btn-dark btn-lg btn-block">Create account</ajax-button>
+      </div>
+    </ajax-form>
+  </modal>
+
+  <% /* "Remove friend" modal */ %>
+  <modal v-if="confirmBlockSelectedUserModalOpen && selectedUser" v-cloak key="remove" @close="closeBlockSelectedUserModal()">
+    <div class="modal-header">
+      <h5 class="modal-title">Blocked {{selectedUser.fullName}}?</h5>
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span>&times;</span>
+      </button>
+    </div>
+    <ajax-form action="blockUser" :syncing.sync="syncing" :cloud-error.sync="cloudError" :handle-parsing="handleParsingBlockedUserForm" @submitted="submittedBockedUserForm($event)">
+      <div class="modal-body">
+        <p>Are you sure you want to blocked {{selectedUser.fullName}}?</p>
+        <p>They will no longer login to service.</p>
+        <p class="text-danger" v-if="cloudError"><small>An error occured while processing your request. Please check your information and try again, or <a href="/contact">contact support</a> if the error persists.</small></p>
+      </div>
+      <div class="modal-footer">
+        <button data-dismiss="modal" class="btn btn-outline-secondary mr-1">Nevermind</button>
+        <ajax-button type="submit" :syncing="syncing" class="btn btn-danger ml-1">Block !</ajax-button>
+      </div>
+    </ajax-form>
+  </modal>
+  <%/* For virtual pages */%>
+
+  <router-view></router-view>
+
+</div>
+<%- /* Expose server-rendered data as window.SAILS_LOCALS :: */ exposeLocalsToBrowser() %>

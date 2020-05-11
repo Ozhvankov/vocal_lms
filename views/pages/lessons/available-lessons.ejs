@@ -1,0 +1,110 @@
+<div id="available-lessons" v-cloak>
+
+    <div class="container">
+        <div class="page-header text-center">
+            <h1>Lessons</h1>
+            <% if(me&&me.isSuperAdmin === true) { %>
+            <h2>View available lessons , or make your own one.</h2>
+            <% } if(me) { %>
+                <h2>View available lessons.</h2>
+            <% } %>
+
+            <div class="header-buttons">
+                <button class="btn btn-outline-primary" @click="clickAddButton()">Add an item</button>
+            </div>
+        </div>
+
+        <div class="listings" v-if="lessons.length > 0">
+
+
+            <div class="card" :key="'lesson'+lesson.id" :class="[lesson.owner.id === me.id ? 'mine' : '', lesson.unavailable ? 'not-available' : '']" v-for="lesson in lessons">
+                <div class="card-options dropdown" v-if="lesson.borrowedBy && lesson.owner.id === me.id">
+                    <span class="options-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="fa fa-ellipsis-v"></span></span>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <span class="dropdown-item" @click="clickDeleteLesson(lesson.id)">Delete</span>
+                        <span class="dropdown-item" @click="clickMarkReturned(lesson.id)">Mark as returned</span>
+                        <span class="dropdown-item" @click="clickContactBorrower(lesson.id)">Contact {{lesson.borrowedBy.fullName}}</span>
+                    </div>
+                </div>
+                <div class="card-options dropdown" v-else-if="lesson.borrowedBy && lesson.borrowedBy.id === me.id">
+                    <span class="options-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="fa fa-ellipsis-v"></span></span>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <span class="dropdown-item" @click="clickReturn(lesson.id)">Give this back</span>
+                        <span class="dropdown-item" @click="clickContactOwner(lesson.id)">Contact {{lesson.owner.fullName}}</span>
+                    </div>
+                </div>
+                <div class="card-options" v-else-if="!lesson.borrowedBy">
+                    <span class="options-button" data-toggle="tooltip" data-placement="top" title="Delete" @click="clickDeleteLesson(lesson.id)" v-if="lesson.owner.id === me.id"><span class="fa fa-trash-o text-danger"></span></span>
+                    <span class="options-button borrow" data-toggle="tooltip" data-placement="top" title="Borrow" @click="clickBorrow(lesson.id)" v-else><span class="fa fa-handshake-o text-dark"></span></span>
+                </div>
+                <img alt="A mysterious item" :alt="lesson.label ? lesson.label : 'A mysterious item'" :src="lesson.imageSrc"/>
+                <span class="label" v-if="lesson.label">{{lesson.label}}<br/></span>
+                <small class="owner text-secondary" v-if="lesson.owner.id === me.id"><span class="fa fa-home mr-1"></span> Mine</small>
+                <small class="owner text-success" v-else-if="lesson.borrowedBy && lesson.borrowedBy.id === me.id"><span class="fa fa-star-o mr-1"></span> Borrowing</small>
+                <small class="owner text-primary" v-else>{{lesson.owner.fullName}}</small>
+            </div>
+
+
+
+        </div>
+
+        <div class="empty text-center" v-else><p>You not have any items. <a href="/lessons/new" @click="clickAddButton()">Add somelesson</a> to get started!</p></div>
+    </div>
+
+
+
+
+
+    <% /* "Upload lessons" modal */ %>
+    <modal v-if="virtualPageSlug === 'new'" v-cloak key="new" @close="closeUploadLessonModal()">
+        <div class="modal-header">
+            <h5 class="modal-title">Upload a new Lesson</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span>&times;</span>
+            </button>
+        </div>
+
+        <ajax-form action="addLesson" :syncing.sync="syncing" :cloud-error.sync="cloudError" :handle-parsing="handleParsingUploadLessonForm" @submitted="submittedUploadLessonForm($event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Add a photo:</label>
+                    <div class="photo-uploader" :class="!uploadFormData.previewImageSrc ? 'empty' :  ''">
+                        <div class="photo-upload-field row d-flex align-items-center" :class="!uploadFormData.previewImageSrc ? 'justify-content-center' :  'justify-content-start'" >
+                            <div class="photo-preview col">
+                                <div class="image-wrapper" :class="!uploadFormData.previewImageSrc ? 'd-flex align-items-center justify-content-center' : ''">
+                                    <img v-if="uploadFormData.previewImageSrc" alt="A preview of the selected item" :src="uploadFormData.previewImageSrc"/>
+                                    <span v-else class="placeholder-icon fa fa-picture-o"></span>
+                                </div>
+                            </div>
+                            <div class="col d-flex-column justify-content-center">
+                <span class="file-upload-button btn btn-sm" :class="[formErrors.photo ? 'btn-outline-danger' : !uploadFormData.previewImageSrc ? 'btn-outline-success' : 'btn-outline-secondary mr-3']">
+                  <span class="button-text" v-if="!uploadFormData.previewImageSrc">Select image</span>
+                  <span class="button-text" v-else>Change image</span>
+                  <input type="file" :disabled="syncing" accept="image/*" class="file-input" @change="changeFileInput($event.target.files)"/>
+                </span>
+                                <p class="image-advice text-muted" v-if="!formErrors.photo"><strong>Tip</strong>: Make sure the item is front and center in the photo, so people know exactly what you're offering to share.</p>
+                                <p class="image-advice text-danger" v-if="formErrors.photo">A photo is required in order to add a new item.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" v-if="uploadFormData.previewImageSrc">
+                    <label>What is it?</label>
+                    <input class="form-control" type="text" v-model="uploadFormData.label" placeholder="Waffle Iron">
+                </div>
+                <p class="text-danger" v-if="cloudError === 'tooBig'"><small>That file is too big. Please choose a junkier picture.</small></p>
+                <p class="text-danger" v-else-if="cloudError"><small>An error occured while processing your request. Please check your information and try again, or <a href="/support">contact support</a> if the error persists.</small></p>
+            </div>
+            <div class="modal-footer flex-row-reverse justify-content-start">
+                <ajax-button type="submit" :syncing="syncing" class="btn btn-primary ml-1">Share item</ajax-button>
+                <button data-dismiss="modal" class="btn btn-outline-primary mr-1">Cancel</button>
+            </div>
+        </ajax-form>
+    </modal>
+
+
+
+
+    <router-view></router-view>
+</div>
+<%- /* Expose server-rendered data as window.SAILS_LOCALS :: */ exposeLocalsToBrowser() %>
