@@ -26,7 +26,7 @@
     "eslint": "6.8.0",
     "htmlhint": "0.11.0",
     "lesshint": "6.3.7",
-    "grunt": "1.1.0",
+    "grunt": "1.5.3",
     "sails-hook-grunt": "^4.0.1"
   },
   "scripts": {
