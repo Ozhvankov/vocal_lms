@@ -8,7 +8,7 @@
     "@sailshq/connect-redis": "^3.2.1",
     "@sailshq/lodash": "^3.10.4",
     "@sailshq/socket.io-redis": "^5.2.0",
-    "async": "3.2.0",
+    "async": "3.2.2",
     "bootstrap-icons": "^1.0.0-alpha3",
     "files": "^1.1.0",
     "fs": "0.0.1-security",
